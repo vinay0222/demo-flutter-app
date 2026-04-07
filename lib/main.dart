@@ -8,11 +8,13 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  print("testing-----");
+  
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Demo App 2',
-      debugShowCheckedModeBanner: true,
+      title: 'Demo App 3',
+      debugShowCheckedModeBanner: true ,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
         useMaterial3: true,
