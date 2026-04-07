@@ -18,6 +18,21 @@ class TaskService {
     return (completedTasks.length / _tasks.length * 100).round();
   }
 
+  /// Search tasks by title or description (case-insensitive).
+  List<Task> search(String query) {
+    if (query.trim().isEmpty) return allTasks;
+    final q = query.toLowerCase();
+    return _tasks
+        .where((t) =>
+            t.title.toLowerCase().contains(q) ||
+            t.description.toLowerCase().contains(q))
+        .toList();
+  }
+
+  /// Returns tasks filtered by [priority].
+  List<Task> byPriority(Priority priority) =>
+      _tasks.where((t) => t.priority == priority).toList();
+
   Task addTask({
     required String title,
     String description = '',
