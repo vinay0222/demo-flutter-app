@@ -1,0 +1,37 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  ai-review:
+    name: Run AI Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Call AI Review API
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://ai-code-review-backend-jyab.onrender.com/review" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "pr_url": "${{ github.event.pull_request.html_url }}",
+              "triggered_by": "github_action"
+            }')
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "Status: $HTTP_CODE"
+          echo "$BODY" | jq . 2>/dev/null || echo "$BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::warning::AI review returned HTTP $HTTP_CODE"
+          fi
+
+          SKIPPED=$(echo "$BODY" | jq -r '.skipped_duplicate // false' 2>/dev/null)
+          if [ "$SKIPPED" = "true" ]; then
+            echo "::notice::Duplicate review detected — skipped."
+          fi
+        continue-on-error: true
