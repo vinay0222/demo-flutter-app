@@ -16,11 +16,10 @@ class _HomeScreenState extends State<HomeScreen>
   final _taskService = TaskService();
   late TabController _tabController;
 
-  
   @override
   void initState() {
     super.initState();
-    // int sum = sumNumbers(1, -2);
+    int sum = _sumNumbers(1, -2);
     _tabController = TabController(length: 2, vsync: this);
     // Seed a couple of demo tasks
     _taskService.addTask(title: 'Review PR #42', description: 'Check auth flow changes', priority: Priority.high);
@@ -121,6 +120,10 @@ class _HomeScreenState extends State<HomeScreen>
         label: const Text('Add Task'),
       ),
     );
+  }
+
+  int _sumNumbers(int? a, int? b) {
+    return (a ?? 0) + (b ?? 0);
   }
 }
 
