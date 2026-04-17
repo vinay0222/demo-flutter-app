@@ -1,0 +1,72 @@
+name: Flutter Build
+
+on:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      _RN: ${{ github.run_number }}
+      _REF: ${{ github.ref_name }}
+      _SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Decode Android keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$KEYSTORE_BASE64" || { echo "::error::KEYSTORE_BASE64 secret is not set"; exit 1; }
+          mkdir -p android/app
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+
+      - name: Build Android APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          flutter build apk --release
+
+      - name: Rename APK for artifact
+        run: |
+          set -euo pipefail
+          mkdir -p build/artifacts
+          REF_SAFE="${_REF//\//-}"
+          _SHA_SHORT="${_SHA:0:7}"
+          APK_BASENAME="Test-${_RN}-${REF_SAFE}"
+          SRC="build/app/outputs/flutter-apk/app-release.apk"
+          test -f "$SRC" || { echo "::error::Expected APK not found at $SRC"; exit 1; }
+          cp "$SRC" "build/artifacts/${APK_BASENAME}.apk"
+          echo "Built ${APK_BASENAME}.apk"
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-${{ github.run_number }}-${{ github.ref_name }}
+          path: build/artifacts/*.apk
+          if-no-files-found: error
